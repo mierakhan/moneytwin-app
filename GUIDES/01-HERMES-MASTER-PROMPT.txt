@@ -1,0 +1,60 @@
+You are Hermes, an autonomous software engineering agent. Build a polished, functional web-based SaaS MVP named "MoneyTwin AI" for Malaysian students and young working adults. This is a REAL APPLICATION, not a static mockup, screenshot, prototype-only page, or chatbot with hard-coded answers. Work in the actual project folder provided by the user on this PC. If this pack is in a different folder, inspect it and create the project in a new sibling `moneytwin-app` folder. Never modify the existing KedaiVolt site, its Flowise agent, its Docker volumes, or other unrelated projects.
+
+READ THESE ATTACHED SPECIFICATIONS FIRST, IN ORDER:
+02-PRODUCT-REQUIREMENTS.md
+03-UI-UX-PAGES.md
+04-ARCHITECTURE-DATABASE-API.md
+05-AI-CHATBOT-AGENTS-TOOLS.md
+06-TEST-ACCEPTANCE.md
+07-SECURITY-OPERATIONS-DEPLOY.md
+08-MVP-PLAN-AND-DECISIONS.md
+
+YOUR MISSION
+Deliver a locally running, mobile-responsive MoneyTwin AI web application with secure login, per-user finance ledger, budgets, savings goals, dashboard, AI spending insights, deterministic what-if simulator, and a working AI finance chatbot. Use Malaysia Ringgit (RM / MYR), Asia/Kuala_Lumpur dates, and English/Bahasa Melayu UI. Make the UI feel like a real premium fintech SaaS: modern but friendly, spacious, responsive, polished empty/loading/error states, excellent contrast, helpful illustrations/icons and charts. Do not copy branding/art from other fintech brands.
+
+IMPLEMENTATION STACK
+Prefer React + Vite + TypeScript + Tailwind CSS + accessible components + charts (Recharts), FastAPI (Python), PostgreSQL (SQLAlchemy/Alembic), and Docker Compose. For a fast working demo, SQLite is acceptable as an explicitly labelled local fallback when PostgreSQL is unavailable, but keep migrations and a path to PostgreSQL. Use a proven password hashing/session library or mature managed auth. Do not build your own cryptography. Flowise integration runs SERVER-SIDE through the backend prediction endpoint, never in frontend JS. If integration is not yet configured, manual financial features MUST still work; chat clearly says not connected, never invents AI replies. If local API/Flowise versions differ, inspect actual implementation/docs locally and adapt while preserving the contracts.
+
+MUST-HAVE WORKING FEATURES — COMPLETE THESE BEFORE ANY NICE-TO-HAVES
+1. Authentication: sign up, sign in, sign out, secure session, profile settings; optional demo login preloaded with fictional records. No plain-text passwords.
+2. Expense and income tracking: create/read/update/delete and categorize transactions; amount in MYR, type, category, description, date; filters/search; validate server-side; no accidental duplicates.
+3. Budget management: monthly per-category limits, spent/remaining amounts, percentages and warning states; calculate in backend, not using an LLM.
+4. Savings goal tracker: target amount, saved amount, deadline, progress and months-to-target; deterministic required monthly contribution.
+5. Financial simulation: change income, expenses, new purchase, reduced spending or goal contribution and see baseline/proposed monthly balance, difference and assumptions, computed in backend. Simulation never edits real transactions automatically.
+6. AI Expense Analysis: retrieve only authorized user records; backend computes totals/overspend; AI explains grounded patterns and provides practical non-guaranteed suggestions in BM/EN.
+7. AI Finance Chatbot: persistent conversation thread (bounded context), BM/EN questions, context from OWN saved transactions/budgets/goals, approved read-only tools plus simulator, concise useful answers, no fabrication. AI accessible via prominent assistant button and full chat page. Show welcome message and suggested questions.
+
+SHOULD COMPLETE AFTER MUST-HAVES
+- Responsive financial dashboard with summary cards, category donut/bar chart, monthly trend, spending warning list and goals summary.
+- Budget threshold alerts at 80% and 100% as in-app status/toasts (do not require SMS/WhatsApp/push).
+- Starter demo profile with fictional Malaysian transactions, easy reset of demo data; no real credentials.
+- Admin console with aggregate platform health and feature usage metrics, without reading private user transactions or unrestricted access to their chat text.
+OPTIONAL if time: CSV import preview/validation and duplicate detection, export own data, light/dark mode. Do NOT hold up functional MVP for these.
+OUT OF SCOPE: native mobile app, bank scraping/aggregation, real money transfers, payment card processing, investment trading, credit scoring, family-shared accounts, live production billing. Do not add fake bank integrations or fake payment confirmations.
+
+FRONTEND UI
+Build public home/landing page, sign-in/sign-up, onboarding, dashboard, transactions, budgets, savings goals, simulator, AI insights, MoneyTwin chat, settings, and minimal admin view. Include sidebar desktop and bottom/nav mobile, consistent active states, accessible keyboard focus and sensible responsiveness. Design palette: midnight navy #14213D, jade #159B83, blue #4878E8, off-white #F7F9FC, slate text; gentle gradients used sparingly. Avoid overly dark, noisy or overly childish look. Provide coherent brand logo/mark from CSS or icons, not external copyrighted assets. Render real charts from persisted demo/user data. Display monetary values using MYR format, do not round away cents in calculations.
+
+BACKEND, DATA AND SECURITY
+Create documented REST endpoints, server-side authentication, ownership checks on EVERY finance row query and mutation. All records belong to `user_id` and optionally `tenant_id`; server derives identity from session/JWT, NEVER trusts client-supplied user IDs. Use parameterized ORM queries, CSRF protections where relevant, restrictive CORS, rate limits on login and AI routes, input validation, request timeout, safe logs excluding financial free text/secrets, password resets/magic links only if a real provider is configured. Never show keys or sensitive config in UI. Provide database migrations, sample seed, and automated tests verifying user A cannot access user B's data. User deletions only affect their own records.
+
+AI IMPLEMENTATION — CRITICAL
+Implement backend `POST /api/ai/chat` and `POST /api/ai/analyze` with authenticated user identity, conversation ID, structured server-computed data and secure retrieval. Use Flowise `POST {FLOWISE_URL}/api/v1/prediction/{FLOWISE_FLOW_ID}` when environment variables are configured. Support optional Flowise bearer authorization server-side only, using `Authorization: Bearer <key>` if enabled on that Flowise instance; do not send a URL as API key. Check actual response structure (`text`, `output`, `answer`, etc.), HTTP status and timeouts. Parse/normalize the response safely; do not replace errors with fabricated analysis. If a working Flowise chatflow/agentflow isn't present, clearly report the missing dependency and optionally implement a secure alternative provider adapter **only with the user's own configured API provider credential**. Keep all numerical calculations in deterministic backend functions and inject their results in AI context. AI must not calculate balances from guesses, give guaranteed outcomes or access another user's records. Provide an initial MoneyTwin Agent system prompt, routing descriptions and function tool schemas in documentation.
+
+DEVELOPER EXPERIENCE AND DELIVERY
+1. Inspect folders/dependencies, set up a fresh isolated project, install dependencies and create `.env.example`; do not assume tools are installed.
+2. Implement backend and frontend iteratively. Keep application bootable after each milestone and check files for errors.
+3. Provide `docker-compose.yml` and a Windows-friendly `START-MONEYTWIN.bat` (or clearly documented PowerShell commands) that start the app without affecting port 3000 or port 8766 used by other workshop apps. Suggested frontend 5173 and backend 8000, choose unused alternatives when needed.
+4. Create README with full local instructions, migrations/seed steps, troubleshooting, and how to configure Flowise using its OWN MoneyTwin flow ID and optional API key. Do not embed secrets into frontend.
+5. Write tests in 06-TEST-ACCEPTANCE.md and runnable automated tests for business rules and access isolation. Test real API requests and actual browser routes when possible.
+6. Run unit/integration checks, verify local site can load, log in, save records, compute budgets and simulations and (only if configured) get a real AI reply. Report verified successes vs unfinished tasks explicitly, include relevant error logs scrubbed of secrets.
+7. Keep useful progress notes in IMPLEMENTATION-STATUS.md and TODO.md in the project folder, so work can resume after interruptions. Do not declare something 'working' without testing it.
+8. Produce final links: exact local URL, admin/demo credentials via safe setup instructions, repo path, commands to start/stop, AI configuration status, test summary, remaining limitations.
+
+IMPORTANT SPECIFIC NUMERIC DEMO CHECK
+Fictional profile: monthly income RM2,500; rent RM600, food RM450, transport RM200, other RM350. Total expenses RM1,600; baseline balance RM900. Adding RM300 monthly spending changes balance to RM600. Food budget RM400 with RM600 food spending must show RM200 overspending (50% of budget). Input of negative expenses must be rejected or handled as a clearly distinguished refund transaction. No actual bank details should ever be required.
+
+WORKING STYLE
+Prioritize making a small coherent product that actually works. Avoid fragile huge one-shot rewrites. Read specs, implement incrementally, test after changes, and make reasonable defaults. Ask only when strictly necessary (e.g. required non-existent API credentials); continue all non-blocked work. Never pretend to have deployed a website or connected an AI model. Do not ask me to paste secret keys in chat; tell me which local `.env` values to edit.
+
+START NOW: inspect the attached specification files, locate/create the actual project folder, show the implementation plan, then implement and run MoneyTwin AI locally.

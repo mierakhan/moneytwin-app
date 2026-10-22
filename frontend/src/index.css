@@ -1,0 +1,106 @@
+@import "tailwindcss";
+
+@theme {
+  --color-navy: #16333a;
+  --color-navy-soft: #1f4a54;
+  --color-jade: #14806b;
+  --color-jade-soft: #e7f3ee;
+  --color-blue: #6c4bf4;
+  --color-blue-soft: #f1ecff;
+  --color-accent: #f5a623;
+  --color-accent-soft: #fff3df;
+  --color-blush: #fbeae4;
+  --color-mint: #e7f3ee;
+  --color-canvas: #f6f7f4;
+  --color-slate-ink: #22333b;
+  --color-muted: #6b7a80;
+  --color-line: #e6e9e4;
+  --radius-card: 24px;
+  --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Instrument Serif", ui-serif, Georgia, "Times New Roman", serif;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-canvas text-slate-ink antialiased;
+    font-family: var(--font-sans);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-blue);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: #c7d6fb;
+  }
+}
+
+@layer utilities {
+  .card {
+    border-radius: 1.5rem;
+    border: 1px solid var(--color-line);
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(22, 51, 58, 0.04), 0 18px 40px -30px rgba(22, 51, 58, 0.35);
+  }
+  .display {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+    font-weight: 400;
+  }
+  .pill {
+    border-radius: 999px;
+  }
+  .card-pad {
+    @apply p-5 sm:p-6;
+  }
+  .label {
+    @apply mb-1.5 block text-sm font-medium text-slate-ink;
+  }
+  .input {
+    @apply w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-[15px] text-slate-ink placeholder:text-slate-400
+      focus:border-blue focus:ring-4 focus:ring-blue/10 focus:outline-none disabled:bg-slate-50;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition
+      disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition
+      bg-navy text-white hover:bg-navy-soft disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-jade {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition
+      bg-jade text-white hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition
+      border border-line bg-white text-slate-ink hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition
+      bg-red-50 text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .chip {
+    @apply rounded-full border border-line px-3 py-1.5 text-sm text-slate-ink hover:bg-slate-50;
+  }
+  .muted {
+    @apply text-muted;
+  }
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-[0.14em] text-muted;
+  }
+  .skeleton {
+    @apply animate-pulse rounded-lg bg-slate-200/70;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

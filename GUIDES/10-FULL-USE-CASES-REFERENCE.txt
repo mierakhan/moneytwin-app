@@ -1,0 +1,259 @@
+MONEYTWIN AI — SAAS BUILDER LAB
+STAGE 2: REQUIREMENTS — USE CASES FOR ALL 10 FEATURES
+
+HOW TO USE
+For each use-case card, copy the content under Goal, Main steps, Errors and edge cases, and Acceptance criteria into the corresponding field in GiGaLab. The first 6 are MUST features; the next 2 SHOULD; the ninth COULD; the tenth WON'T and should be excluded from Version 1 if the lab only generates use cases for MUST features.
+
+============================================================
+UC1 — EXPENSE TRACKING [MUST | Owner | Uses AI: No]
+============================================================
+GOAL
+Allow users to record, edit, and view income and expense transactions accurately.
+
+MAIN STEPS (ONE PER LINE)
+1. User logs into MoneyTwin AI.
+2. User opens Expense Tracking.
+3. User enters a transaction type, amount, category, date, and optional description.
+4. System validates and saves the transaction to the user's account.
+5. System updates the transaction list and spending totals.
+
+ERRORS AND EDGE CASES (ONE PER LINE)
+User enters a negative or zero amount.
+User leaves a required field empty.
+User enters an invalid transaction date or category.
+User attempts to edit a transaction owned by another user.
+
+ACCEPTANCE CRITERIA (ONE PER LINE)
+Given a logged-in user and valid transaction fields, when they save an expense of RM25, then the system stores an RM25 expense under that user's account.
+Given an existing expense of RM25, when the user updates its amount to RM30, then the transaction list and relevant totals reflect RM30.
+Given an amount of RM0, when the user submits the form, then the system rejects the entry and shows a validation error.
+Given a transaction owned by another user, when a user attempts to access or change it, then the system denies the request.
+
+============================================================
+UC2 — BUDGET MANAGEMENT [MUST | Owner | Uses AI: No]
+============================================================
+GOAL
+Allow users to set monthly spending limits, track budget usage, and see remaining balances.
+
+MAIN STEPS (ONE PER LINE)
+1. User opens Budget Management.
+2. User selects a month and spending category.
+3. User enters a monthly budget limit.
+4. System validates and saves the budget.
+5. System calculates category spending and displays the remaining balance.
+
+ERRORS AND EDGE CASES (ONE PER LINE)
+User enters a zero, negative, or non-numeric budget.
+User creates a duplicate budget for the same category and month.
+User has no expenses in the selected month.
+Spending is higher than the budget limit.
+
+ACCEPTANCE CRITERIA (ONE PER LINE)
+Given a logged-in user, when they save a valid RM500 food budget for October, then the system stores it for that category and month.
+Given a RM500 budget and RM200 of matching expenses, when the budget page loads, then the remaining balance is RM300.
+Given RM600 spending against a RM500 budget, when the budget is viewed, then the system shows an RM100 overspend warning.
+Given an invalid negative limit, when the user submits it, then the system rejects it without saving a budget.
+
+============================================================
+UC3 — AI EXPENSE ANALYSIS [MUST | Owner | Uses AI: Yes]
+============================================================
+GOAL
+Help users understand spending patterns and receive AI explanations grounded in their actual transactions.
+
+MAIN STEPS (ONE PER LINE)
+1. User opens AI Expense Analysis and selects a period.
+2. System retrieves only the user's transactions and budgets for that period.
+3. System calculates totals, category breakdowns, and budget variances using code.
+4. AI explains notable patterns and suggests practical actions using the computed figures.
+5. System displays the analysis with the selected period and supporting amounts.
+
+ERRORS AND EDGE CASES (ONE PER LINE)
+User has no transactions for the period.
+Some transaction values are missing or invalid.
+AI service times out or returns an error.
+AI output contradicts the calculated totals or invents data.
+
+ACCEPTANCE CRITERIA (ONE PER LINE)
+Given valid expenses of RM200 for food and RM100 for transport, when analysis runs, then the system reports total expenses of RM300.
+Given RM600 food spending and a RM400 food budget, when analysis runs, then it identifies RM200 overspending based on calculated data.
+Given no transactions in the period, when analysis is requested, then the system asks the user to add transactions instead of fabricating insights.
+Given an AI service failure, when analysis is requested, then the system shows an error or calculated summary without invented AI recommendations.
+
+============================================================
+UC4 — FINANCIAL SIMULATION [MUST | Owner | Uses AI: Yes]
+============================================================
+GOAL
+Let users compare what-if financial scenarios and understand how a change in expenses or income affects their projected balance.
+
+MAIN STEPS (ONE PER LINE)
+1. User opens Financial Simulation.
+2. User selects a baseline month or enters baseline income and spending values.
+3. User enters a scenario such as reducing dining expenses by RM100.
+4. System calculates baseline and scenario balances using deterministic formulas.
+5. AI explains the difference and clearly identifies all assumptions.
+
+ERRORS AND EDGE CASES (ONE PER LINE)
+User enters missing, invalid, or negative spending adjustments.
+User tries to reduce a category by more than its current spending.
+There is insufficient baseline data for a projection.
+AI service fails or describes different figures from the calculated result.
+
+ACCEPTANCE CRITERIA (ONE PER LINE)
+Given monthly income of RM2,000 and expenses of RM1,500, when the baseline is calculated, then the remaining balance is RM500.
+Given baseline expenses of RM1,500 and a valid RM100 expense reduction, when the simulation runs, then simulated expenses are RM1,400 and the remaining balance is RM600.
+Given a RM100 monthly improvement for 6 months with no interest or other changes, when projected, then the additional cumulative savings are RM600.
+Given an invalid adjustment that exceeds category spending, when the simulation runs, then the system rejects it or requests a corrected value.
+
+============================================================
+UC5 — SAVINGS GOAL TRACKER [MUST | Owner | Uses AI: No]
+============================================================
+GOAL
+Enable users to create savings targets, record contributions, and track their progress toward a deadline.
+
+MAIN STEPS (ONE PER LINE)
+1. User opens Savings Goals.
+2. User enters a goal name, target amount, and target date.
+3. System validates and saves the goal.
+4. User adds savings contributions.
+5. System updates progress, remaining amount, and required future contributions.
+
+ERRORS AND EDGE CASES (ONE PER LINE)
+Target amount is zero or negative.
+Target date is in the past.
+Contribution is invalid or negative.
+Goal has been reached or exceeded.
+
+ACCEPTANCE CRITERIA (ONE PER LINE)
+Given a target amount of RM1,200 and current savings of RM300, when the goal is viewed, then the system displays RM900 remaining and 25% progress.
+Given a valid new contribution of RM100, when it is saved, then current savings increase by RM100.
+Given RM900 remaining and 9 equal months until the deadline, when the plan is calculated, then the system suggests RM100 per month excluding interest.
+Given a past target date for a new goal, when the user saves it, then the system asks for a valid future date.
+
+============================================================
+UC6 — AI FINANCE CHATBOT [MUST | Owner | Uses AI: Yes]
+============================================================
+GOAL
+Allow users to ask finance questions in English or Bahasa Melayu and receive short, accurate answers based on their own authorized financial records.
+
+MAIN STEPS (ONE PER LINE)
+1. User opens the MoneyTwin AI chat panel.
+2. User asks a question about expenses, budgets, savings, or a what-if scenario.
+3. System identifies the relevant request and retrieves authorized financial context.
+4. System performs required numerical calculations using code or tools.
+5. AI returns a concise answer grounded in the retrieved figures and assumptions.
+
+ERRORS AND EDGE CASES (ONE PER LINE)
+Question is unclear or missing essential financial inputs.
+User has insufficient transaction records.
+AI service or Flowise endpoint is unavailable.
+User requests another person's financial information.
+
+ACCEPTANCE CRITERIA (ONE PER LINE)
+Given expenses totaling RM450 for the selected month, when the user asks how much they spent, then the chatbot answers RM450 without inventing transactions.
+Given a RM600 budget and RM450 expenses, when the user asks for the remaining budget, then the chatbot answers RM150.
+Given a Malay-language question, when the chatbot responds, then it provides a helpful answer in Bahasa Melayu.
+Given an unavailable AI endpoint, when the user submits a question, then the chatbot displays a safe retry message rather than a fabricated answer.
+Given a request for another user's private financial records, when it is submitted, then the system refuses access.
+
+============================================================
+UC7 — OVERSPENDING ALERTS [SHOULD | Owner | Uses AI: No]
+============================================================
+GOAL
+Notify users when their spending approaches or exceeds a monthly budget limit.
+
+MAIN STEPS (ONE PER LINE)
+1. User sets a monthly budget for a category.
+2. User records a new expense.
+3. System recalculates monthly spending for that category.
+4. System compares spending with the budget threshold.
+5. System displays a warning if the threshold is reached or exceeded.
+
+ERRORS AND EDGE CASES (ONE PER LINE)
+No monthly budget has been created.
+A transaction is edited or deleted after an alert appears.
+Multiple transactions trigger the same threshold repeatedly.
+Budget is zero or invalid.
+
+ACCEPTANCE CRITERIA (ONE PER LINE)
+Given a RM500 budget and RM450 spending, when the alert threshold is set to 90%, then the system displays a near-limit warning.
+Given a RM500 budget and RM520 spending, when spending is recalculated, then the system displays an RM20 overspending warning.
+Given no configured budget, when an expense is added, then the system does not show a misleading budget warning.
+Given unchanged spending at the same threshold, when the user revisits the dashboard, then the system avoids creating duplicate alerts for the same event.
+
+============================================================
+UC8 — FINANCIAL DASHBOARD [SHOULD | Owner | Uses AI: No]
+============================================================
+GOAL
+Show a clear overview of monthly income, expenses, remaining balance, budgets, and savings progress.
+
+MAIN STEPS (ONE PER LINE)
+1. User logs into MoneyTwin AI.
+2. User opens the Financial Dashboard.
+3. System retrieves the user's financial records for the selected month.
+4. System calculates and displays totals and category summaries.
+5. User changes the selected month to view another period.
+
+ERRORS AND EDGE CASES (ONE PER LINE)
+User has no financial records for a selected month.
+Transactions contain incomplete or invalid values.
+Database is temporarily unavailable.
+User switches months while data is loading.
+
+ACCEPTANCE CRITERIA (ONE PER LINE)
+Given income of RM2,000 and expenses of RM1,400, when the dashboard loads, then the remaining balance is RM600.
+Given no transactions for a selected month, when the dashboard loads, then it displays zero totals and an empty-state explanation.
+Given the user selects a different month, when the new data loads, then all displayed totals correspond to the newly selected month.
+Given a failed database request, when the dashboard loads, then it displays a clear error instead of incorrect figures.
+
+============================================================
+UC9 — EXPENSE CSV IMPORT [COULD | Owner | Uses AI: No]
+============================================================
+GOAL
+Allow users to bulk-import expense transactions from a correctly formatted CSV file.
+
+MAIN STEPS (ONE PER LINE)
+1. User opens the CSV Import page.
+2. User uploads a CSV file containing transaction dates, amounts, types, and categories.
+3. System checks file type, headers, and row values.
+4. System previews the valid and invalid rows.
+5. User confirms the import and the system saves valid rows.
+
+ERRORS AND EDGE CASES (ONE PER LINE)
+Uploaded file is not CSV or exceeds the allowed size.
+CSV headers are missing or incorrect.
+Some rows contain invalid dates or amounts.
+CSV contains duplicate transactions.
+
+ACCEPTANCE CRITERIA (ONE PER LINE)
+Given a CSV with 10 valid transactions, when the user confirms import, then 10 transactions are saved to their account.
+Given an invalid amount in a CSV row, when the file is validated, then the system identifies the row and explains the problem.
+Given a non-CSV upload, when validation runs, then the system rejects it.
+Given a duplicate transaction detected under the configured duplicate rules, when import is confirmed, then the system prevents accidental duplicate insertion or requests user confirmation.
+
+============================================================
+UC10 — SHARED FAMILY FINANCE [WON'T | NOT IN VERSION 1]
+============================================================
+GOAL
+Future version: allow invited family members to collaborate on a shared household budget while keeping private accounts separate.
+
+MAIN STEPS (ONE PER LINE)
+1. Household owner creates a shared budget space.
+2. Owner invites a family member.
+3. Invited member accepts and is assigned a permission level.
+4. Members add approved shared transactions.
+5. System updates the household budget and activity history.
+
+ERRORS AND EDGE CASES (ONE PER LINE)
+Invitation expires or goes to an incorrect account.
+Member tries to view private transactions without permission.
+Two members edit the same shared budget at once.
+Member is removed from the household.
+
+ACCEPTANCE CRITERIA (ONE PER LINE)
+Given a valid invitation and owner approval, when a family member accepts, then they can access only the permitted shared budget.
+Given a private transaction, when another household member tries to view it, then access is denied.
+Given a removed member, when they attempt to access the household budget, then access is denied.
+
+NOTE: DO NOT IMPLEMENT OR REQUIRE THIS USE CASE IN VERSION 1. Mark it Won't and omit it if the lab only creates Use Cases for Must features.
+
+END
