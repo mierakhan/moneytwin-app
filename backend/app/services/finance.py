@@ -142,6 +142,31 @@ def month_summary(db: Session, user_id: str, month: date) -> dict[str, Any]:
     }
 
 
+def unbudgeted_spending(db: Session, user_id: str, month: date) -> list[dict[str, Any]]:
+    """Expense categories with recorded spending but no budget for that month."""
+    start, end = month, month_end(month)
+    spend = _spend_by_category(db, user_id, start, end)
+    budgeted = {b.category_id for b in db.scalars(
+        select(Budget).where(Budget.user_id == user_id, Budget.month == start))}
+    if not spend:
+        return []
+    cats = {c.id: c for c in db.scalars(select(Category).where(Category.id.in_(spend.keys())))}
+    rows = []
+    for category_id, amount in spend.items():
+        if category_id in budgeted or amount <= 0:
+            continue
+        category = cats.get(category_id)
+        rows.append({
+            "category_id": category_id,
+            "category_name": category.name if category else "Uncategorised",
+            "spent": money(amount),
+            "spent_minor": amount,
+            "month": f"{month.year:04d}-{month.month:02d}",
+            "has_budget": False,
+        })
+    return sorted(rows, key=lambda row: row["spent_minor"], reverse=True)
+
+
 def budget_rows(db: Session, user_id: str, month: date) -> list[dict[str, Any]]:
     start, end = month, month_end(month)
     spend = _spend_by_category(db, user_id, start, end)
@@ -229,6 +254,75 @@ def goal_progress(goal: SavingsGoal, today: date | None = None) -> dict[str, Any
     }
 
 
+def prev_month(month: date) -> date:
+    return date(month.year - (month.month == 1), 12 if month.month == 1 else month.month - 1, 1)
+
+
+def shift_month(month: date, delta: int) -> date:
+    total = month.year * 12 + (month.month - 1) + delta
+    return date(total // 12, total % 12 + 1, 1)
+
+
+def _change(current: int, previous: int) -> dict[str, Any]:
+    delta = current - previous
+    percent = round((delta / previous) * 100, 1) if previous else None
+    if delta > 0:
+        direction = "up"
+    elif delta < 0:
+        direction = "down"
+    else:
+        direction = "flat"
+    return {"delta_minor": delta, "delta": money(delta), "percent": percent, "direction": direction}
+
+
+def month_history(db: Session, user: User, months: int = 6) -> dict[str, Any]:
+    """Per-month summaries for the signed-in user. Months with no rows say so."""
+    months = max(1, min(months, 24))
+    anchor = month_start()
+    rows: list[dict[str, Any]] = []
+    for offset in range(months - 1, -1, -1):
+        m = shift_month(anchor, -offset)
+        summary = month_summary(db, user.id, m)
+        budgets = budget_rows(db, user.id, m)
+        limit = sum(int(b["limit_minor"]) for b in budgets)
+        spent = sum(int(b["spent_minor"]) for b in budgets)
+        over = sum(max(0, int(b["spent_minor"]) - int(b["limit_minor"])) for b in budgets)
+        rows.append({
+            "month": summary["month"],
+            "label": month_label(m, user.locale),
+            "income": summary["income"],
+            "expenses": summary["expenses"],
+            "balance": summary["balance"],
+            "income_minor": summary["income_minor"],
+            "expenses_minor": summary["expenses_minor"],
+            "balance_minor": summary["balance_minor"],
+            "transaction_count": summary["transaction_count"],
+            "has_data": summary["transaction_count"] > 0,
+            "top_category": summary["categories"][0]["name"] if summary["categories"] else None,
+            "top_category_amount": summary["categories"][0]["amount"] if summary["categories"] else None,
+            "budget_limit": money(limit),
+            "budget_spent": money(spent),
+            "over_budget": money(over),
+            "categories": summary["categories"],
+            "budgets": budgets,
+        })
+
+    for index, row in enumerate(rows):
+        previous = rows[index - 1] if index > 0 else None
+        row["expenses_change"] = _change(row["expenses_minor"], previous["expenses_minor"]) if previous else None
+        row["income_change"] = _change(row["income_minor"], previous["income_minor"]) if previous else None
+        row["balance_change"] = _change(row["balance_minor"], previous["balance_minor"]) if previous else None
+
+    latest = rows[-1] if rows else None
+    return {
+        "months": months,
+        "rows": rows,
+        "latest": latest,
+        "currency": "MYR",
+        "timezone": "Asia/Kuala_Lumpur",
+    }
+
+
 def dashboard(db: Session, user: User, month: date) -> dict[str, Any]:
     summary = month_summary(db, user.id, month)
     budgets = budget_rows(db, user.id, month)
@@ -271,11 +365,46 @@ def dashboard(db: Session, user: User, month: date) -> dict[str, Any]:
         }
         for b in budgets if b["state"] in ("warning", "reached", "over")
     ]
+    over_budgets = sorted(
+        (
+            {
+                "budget_id": b["id"],
+                "category_id": b["category_id"],
+                "category_name": b["category_name"],
+                "limit": b["limit"],
+                "spent": b["spent"],
+                "overspend": b["overspend"],
+                "overspend_minor": max(0, b["spent_minor"] - b["limit_minor"]),
+                "percent_used": b["percent_used"],
+            }
+            for b in budgets if b["spent_minor"] > b["limit_minor"]
+        ),
+        key=lambda row: row["overspend_minor"],
+        reverse=True,
+    )
+    overspending_total = sum(row["overspend_minor"] for row in over_budgets)
     top = summary["categories"][0] if summary["categories"] else None
+    prev = month_summary(db, user.id, prev_month(month))
+    previous = {
+        "month": prev["month"],
+        "label": prev["month_label"],
+        "income": prev["income"],
+        "expenses": prev["expenses"],
+        "balance": prev["balance"],
+        "has_data": prev["transaction_count"] > 0,
+        "expenses_change": _change(summary["expenses_minor"], prev["expenses_minor"]),
+        "income_change": _change(summary["income_minor"], prev["income_minor"]),
+        "balance_change": _change(summary["balance_minor"], prev["balance_minor"]),
+    }
     return {
         **summary,
+        "previous": previous,
         "budgets": budgets,
         "warnings": warnings,
+        "over_budgets": over_budgets,
+        "overspending_total": money(overspending_total),
+        "overspending_total_minor": overspending_total,
+        "unbudgeted": unbudgeted_spending(db, user.id, month),
         "trend": trend,
         "goals": goals,
         "top_category": top,

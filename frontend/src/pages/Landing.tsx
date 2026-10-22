@@ -85,9 +85,9 @@ export default function Landing() {
             <span className="inline-flex items-center gap-2 rounded-full border border-jade/30 bg-white px-3 py-1 text-xs font-semibold text-jade">
               <Sparkles className="h-3.5 w-3.5" /> Built for Malaysian students and young workers
             </span>
-            <h1 className="mt-5 text-4xl font-extrabold leading-[1.08] tracking-tight text-navy sm:text-5xl">
+            <h1 className="display mt-5 text-[46px] leading-[1.05] text-navy sm:text-[62px]">
               Know your money.<br />
-              <span className="text-jade">Preview your next move.</span>
+              <span className="text-accent">Preview your next move.</span>
             </h1>
             <p className="mt-5 max-w-xl text-[17px] leading-relaxed text-slate-600">
               Track income and spending in Ringgit, set budgets that actually warn you, grow a savings goal,

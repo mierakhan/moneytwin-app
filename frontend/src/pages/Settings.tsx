@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { Download, LogOut, RotateCcw, ShieldAlert, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 import { api, ApiError } from "../lib/api";
+import { monthKey, myr } from "../lib/format";
+import type { Dashboard } from "../lib/types";
 import { useI18n } from "../lib/i18n";
 import { useAuth } from "../state/AuthContext";
 import { useToast } from "../state/Toast";
@@ -17,7 +20,15 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [actualIncome, setActualIncome] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    void api
+      .get<Dashboard>(`/api/dashboard?month=${monthKey()}`)
+      .then((data) => setActualIncome(data.income))
+      .catch(() => setActualIncome(null));
+  }, []);
 
   const saveProfile = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -99,7 +110,7 @@ export default function SettingsPage() {
     <div className="space-y-5">
       <header>
         <p className="eyebrow">{t("navSettings")}</p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight text-navy">{lang === "bm" ? "Tetapan anda" : "Your settings"}</h1>
+        <h1 className="display mt-1 text-[30px] leading-tight text-navy sm:text-[36px]">{lang === "bm" ? "Tetapan anda" : "Your settings"}</h1>
         <p className="mt-1 text-sm text-muted">{user?.email}</p>
       </header>
 
@@ -111,8 +122,24 @@ export default function SettingsPage() {
               <input id="display" className="input" value={name} onChange={(e) => setName(e.target.value)} maxLength={80} />
             </div>
             <div>
-              <label htmlFor="income" className="label">{t("monthlyIncome")} (MYR)</label>
+              <label htmlFor="income" className="label">
+                {lang === "bm" ? "Pendapatan bulanan dirancang" : "Planned monthly income"} (MYR)
+              </label>
               <input id="income" className="input" inputMode="decimal" value={income ?? ""} onChange={(e) => setIncome(e.target.value)} placeholder="2500.00" />
+              <p className="mt-1.5 text-xs text-muted">
+                {lang === "bm"
+                  ? "Anggaran untuk perancangan dan nilai awal simulasi."
+                  : "An estimate used for planning and as a simulation default."}
+                {actualIncome !== null && (
+                  <>
+                    {" "}
+                    <span className="font-medium text-navy">
+                      {lang === "bm" ? "Pendapatan sebenar bulan ini: " : "Actual income this month: "}
+                      {myr(actualIncome)}
+                    </span>
+                  </>
+                )}
+              </p>
             </div>
             <div>
               <span className="label">{t("language")}</span>

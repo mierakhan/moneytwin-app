@@ -13,7 +13,7 @@ import type { Dashboard as DashboardData } from "../lib/types";
 import MonthPicker from "../components/MonthPicker";
 import { Badge, EmptyState, ErrorState, ProgressBar, SectionCard, Skeleton } from "../components/ui";
 
-const COLORS = ["#159B83", "#4878E8", "#14213D", "#F2A65A", "#8B5CF6", "#EC4899", "#0EA5E9", "#94A3B8"];
+const COLORS = ["#4C8DF6", "#8B6CF0", "#C86CE6", "#B9C4F5", "#F25C66", "#F59A5B", "#1FB67A", "#8A93B8"];
 
 export default function Dashboard() {
   const { t, lang } = useI18n();
@@ -76,14 +76,118 @@ export default function Dashboard() {
 
       {data && (
         <>
+          <section className="card card-pad">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
+                  {lang === "bm" ? "Ringkasan bulan ini" : "This month in a line"}
+                </p>
+                <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-slate-600">
+                  {data.transaction_count === 0 ? (
+                    lang === "bm"
+                      ? `Belum ada rekod untuk ${data.month_label}. Tambah pendapatan dan perbelanjaan pertama untuk melihat ringkasan anda.`
+                      : `Nothing recorded for ${data.month_label} yet. Add an income and an expense to see your summary.`
+                  ) : (
+                    <>
+                      {lang === "bm" ? "Anda terima " : "You earned "}
+                      <strong className="font-semibold text-navy">{myr(data.income)}</strong>
+                      {lang === "bm" ? " dan belanja " : " and spent "}
+                      <strong className="font-semibold text-navy">{myr(data.expenses)}</strong>
+                      {lang === "bm" ? " pada " : " in "}
+                      {data.month_label}
+                      {Number(data.income) > 0 && (
+                        <>
+                          {lang === "bm" ? ", jadi " : ", keeping "}
+                          <strong className="font-semibold text-navy">
+                            {Math.max(0, Math.round((Number(data.balance) / Number(data.income)) * 100))}%
+                          </strong>
+                          {lang === "bm" ? " daripada pendapatan masih tinggal." : " of your income."}
+                        </>
+                      )}
+                      {data.top_category && (
+                        <>
+                          {lang === "bm" ? " " : " "}
+                          {lang === "bm" ? "Kategori terbesar ialah " : "Biggest category: "}
+                          <strong className="font-semibold text-navy">{data.top_category.name}</strong>{" "}
+                          {myr(data.top_category.amount)}.
+                        </>
+                      )}{" "}
+                      {overBudget
+                        ? lang === "bm"
+                          ? `${overBudget.category_name} melebihi bajet sebanyak ${myr(overBudget.overspend)}.`
+                          : `${overBudget.category_name} is ${myr(overBudget.overspend)} over its budget.`
+                        : data.budgets.length > 0
+                          ? lang === "bm"
+                            ? "Semua bajet masih dalam had."
+                            : "Every budget is still within its limit."
+                          : ""}
+                    </>
+                  )}
+                </p>
+              </div>
+              <span className="rounded-full bg-mint px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-jade">
+                {lang === "bm" ? "Dikira daripada rekod anda" : "From your records"}
+              </span>
+            </div>
+
+            {data.transaction_count > 0 && (
+              <>
+                <div className="mt-4 flex h-2.5 w-full overflow-hidden rounded-full bg-line">
+                  <div className="h-full bg-navy" style={{
+                    width: `${Number(data.income) > 0 ? Math.min(100, (Number(data.expenses) / Number(data.income)) * 100) : 100}%`,
+                  }} />
+                  <div className="h-full bg-accent" style={{
+                    width: `${Number(data.income) > 0 ? Math.max(0, Math.min(100, (Number(data.balance) / Number(data.income)) * 100)) : 0}%`,
+                  }} />
+                </div>
+                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-navy" />
+                    {t("spent")} {Number(data.income) > 0 ? Math.round((Number(data.expenses) / Number(data.income)) * 100) : 100}%
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-accent" />
+                    {lang === "bm" ? "Tinggal" : "Kept"} {Number(data.income) > 0 ? Math.max(0, Math.round((Number(data.balance) / Number(data.income)) * 100)) : 0}%
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-jade" />
+                    {lang === "bm" ? "Bajet" : "Budget"} {usage}%
+                  </span>
+                </div>
+              </>
+            )}
+          </section>
+
           <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
-            <section className="relative overflow-hidden rounded-[28px] bg-navy p-6 text-white sm:p-7">
+            <section className="card-grad-blue relative overflow-hidden rounded-[28px] p-6 sm:p-7">
               <div className="pointer-events-none absolute -right-12 -top-16 h-48 w-48 rounded-full bg-white/5" />
               <div className="pointer-events-none absolute -bottom-20 -left-10 h-40 w-40 rounded-full bg-accent/15" />
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/60">
                 {t("balance")} · {data.month_label}
               </p>
-              <p className="display mt-2 text-[40px] leading-none sm:text-[52px]">{myr(data.balance)}</p>
+              <p className="display tabular mt-2 text-[40px] leading-none sm:text-[52px]">{myr(data.balance)}</p>
+              {(() => {
+                const series = data.trend.map((row) => Number(row.expenses));
+                const previous = series[series.length - 2] ?? 0;
+                const latest = series[series.length - 1] ?? 0;
+                const change = previous > 0 ? Math.round(((latest - previous) / previous) * 100) : null;
+                const max = Math.max(...series, 1);
+                const points = series
+                  .map((value, index) => `${(index / Math.max(series.length - 1, 1)) * 120},${36 - (value / max) * 30}`)
+                  .join(" ");
+                return (
+                  <div className="mt-3 flex items-end justify-between gap-3">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-semibold text-white">
+                      {change === null
+                        ? (lang === "bm" ? "Tiada data bulan lepas" : "No previous data")
+                        : `${change > 0 ? "+" : ""}${change}% ${lang === "bm" ? "belanja" : "spending"} ${lang === "bm" ? "vs bulan lepas" : "vs last month"}`}
+                    </span>
+                    <svg width="120" height="38" viewBox="0 0 120 38" aria-hidden="true" className="opacity-90">
+                      <polyline points={points} fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                );
+              })()}
               <div className="mt-5 flex flex-wrap items-center gap-2 text-xs">
                 <span className="rounded-full bg-white/10 px-3 py-1.5">
                   <span className="text-white/60">{t("income")} </span>
@@ -102,12 +206,12 @@ export default function Dashboard() {
                   {usage}% {lang === "bm" ? "bajet digunakan" : "of budget used"}
                 </span>
               </div>
-              {overBudget && (
+              {data.over_budgets.length > 0 && (
                 <p className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-accent/15 px-3 py-1.5 text-[11px] font-medium text-accent">
                   <TrendingDown className="h-3.5 w-3.5" />
                   {lang === "bm"
-                    ? `${overBudget.category_name} terlebih ${myr(overBudget.overspend)}`
-                    : `${overBudget.category_name} is ${myr(overBudget.overspend)} over`}
+                    ? `${data.over_budgets.length} kategori terlebih ${myr(data.overspending_total)}`
+                    : `${data.over_budgets.length} categories over by ${myr(data.overspending_total)}`}
                 </p>
               )}
             </section>
@@ -158,6 +262,45 @@ export default function Dashboard() {
               </ul>
             </div>
           )}
+
+          {data.unbudgeted.length > 0 && (
+            <section className="card card-pad">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
+                  {lang === "bm" ? "Belanja tanpa bajet" : "Unbudgeted spending"}
+                </p>
+                <Link to="/app/budgets" className="text-xs font-semibold text-jade">
+                  {lang === "bm" ? "Tetapkan bajet" : "Set a budget"}
+                </Link>
+              </div>
+              <ul className="mt-3 flex flex-wrap gap-2">
+                {data.unbudgeted.map((row) => (
+                  <li key={row.category_id} className="rounded-full bg-canvas px-3 py-1.5 text-xs text-slate-600">
+                    {row.category_name}
+                    <span className="ml-1.5 font-semibold text-navy">{myr(row.spent)}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+            {[
+              { label: lang === "bm" ? "Tambah belanja" : "Add expense", to: "/app/transactions", tone: "bg-coral-soft text-coral" },
+              { label: lang === "bm" ? "Tambah pendapatan" : "Add income", to: "/app/transactions", tone: "bg-jade-soft text-jade" },
+              { label: lang === "bm" ? "Tetapkan bajet" : "Set budget", to: "/app/budgets", tone: "bg-orange-soft text-orange" },
+              { label: lang === "bm" ? "Jalankan simulasi" : "Simulate", to: "/app/simulator", tone: "bg-indigo-soft text-indigo" },
+              { label: lang === "bm" ? "Tanya AI" : "Ask AI", to: "/app/chat", tone: "bg-blue-soft text-blue" },
+            ].map((tile) => (
+              <Link key={tile.label} to={tile.to}
+                    className="card flex items-center gap-3 p-3 transition hover:-translate-y-0.5 hover:border-indigo/40">
+                <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${tile.tone}`}>
+                  <Plus className="h-4 w-4" />
+                </span>
+                <span className="text-xs font-semibold leading-tight text-navy">{tile.label}</span>
+              </Link>
+            ))}
+          </div>
 
           <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
             <SectionCard title={t("trend")} subtitle={lang === "bm" ? "Enam bulan terakhir" : "Last six months"}>

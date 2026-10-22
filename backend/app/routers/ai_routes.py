@@ -71,7 +71,7 @@ def chat(payload: ChatIn, user: User = Depends(require_csrf), db: OrmSession = D
 
     history = _history(db, conv.id)[:-1][-8:]
     system = ai.SYSTEM_PROMPT + "\n\nVERIFIED_DATA (computed by the backend, MYR):\n" + \
-        __import__("json").dumps(context, ensure_ascii=False)
+        __import__("json").dumps(context, ensure_ascii=False) + "\n\n" + ai.contract_prompt(ai.CHAT_CONTRACT)
     started = time.perf_counter()
 
     cfg = ai.provider_config()
@@ -118,6 +118,23 @@ def chat(payload: ChatIn, user: User = Depends(require_csrf), db: OrmSession = D
                                          "hint": "Your saved transactions and budgets are unaffected. "
                                                  "You can keep using the app without AI."}) from exc
 
+    contract_payload = ai.extract_json(reply)
+    schema_ok, problems, fields = ai.check_contract(contract_payload, ai.CHAT_CONTRACT)
+    contract_used = "json"
+    needs_review = False
+    if fields:
+        reply = fields["answer"]
+        needs_review = bool(fields.get("needs_review"))
+        ok_text, bad_text = ai.validate_reply(reply, context, payload.message)
+        if not ok_text:
+            reply = ai.deterministic_brief(context, locale)
+            msg_status = "fallback"
+            needs_review = True
+    else:
+        # The agent answered in prose, not JSON: still usable, but flagged for review.
+        contract_used = "text"
+        needs_review = True
+
     assistant = Message(conversation_id=conv.id, role="assistant", content=reply, status=msg_status)
     db.add(assistant)
     conv.updated_at = finance.kl_now()
@@ -133,6 +150,8 @@ def chat(payload: ChatIn, user: User = Depends(require_csrf), db: OrmSession = D
         "provider": cfg["provider"],
         "model": cfg["model"],
         "attempts": attempts,
+        "contract": contract_used,
+        "needs_review": needs_review,
     }
 
 
@@ -222,14 +241,149 @@ def analyze(payload: AnalyzeIn, user: User = Depends(require_csrf), db: OrmSessi
             "notice": "The AI service did not respond. These figures are still computed from your data.",
         }
     parts = [p.strip() for p in text.split("\n") if p.strip()]
+    contract_used = "text"
+    needs_review = status_ != "ok"
+    payload_json = ai.extract_json(text)
+    schema_ok, problems, fields = ai.check_contract(payload_json, ai.ANALYZE_CONTRACT)
+    if fields:
+        expected_expenses = summary["expenses_minor"]
+        expected_over = int(round(float(computed["overspending_amount"]) * 100))
+        numbers_ok = (
+            ai.numbers_match(fields["total_expenses"], expected_expenses)
+            and ai.numbers_match(fields["overspending_amount"], expected_over)
+        )
+        if numbers_ok:
+            contract_used = "json"
+            text = fields["summary"]
+            recommendation = fields["recommendation"]
+            needs_review = bool(fields.get("needs_review"))
+            grounded = True
+        else:
+            text = ai.deterministic_brief(context, locale)
+            recommendation = None
+            needs_review = True
+            grounded = False
+            status_ = "fallback"
+    else:
+        recommendation = parts[-1] if len(parts) > 1 else None
+        grounded = status_ == "ok"
+
     return {
         "computed": computed,
         "insight": text,
-        "recommendation": parts[-1] if len(parts) > 1 else None,
-        "ai": {"status": status_, "provider": cfg["provider"], "model": cfg["model"]},
-        "needs_review": status_ != "ok",
-        "grounded": status_ == "ok",
+        "recommendation": recommendation,
+        "ai": {"status": status_, "provider": cfg["provider"], "model": cfg["model"], "contract": contract_used},
+        "needs_review": needs_review,
+        "grounded": grounded,
     }
+
+
+@router.post("/brief")
+def brief(payload: AnalyzeIn, user: User = Depends(require_csrf), db: OrmSession = Depends(get_db)):
+    """Short snapshot text: up to three findings plus one suggestion, always from verified data."""
+    locale = payload.locale or user.locale or "en"
+    try:
+        month = parse_month(payload.month) or finance.month_start()
+    except ValueError:
+        raise HTTPException(400, detail="month must look like YYYY-MM")
+
+    context = ai.build_context(db, user, month, locale=locale)
+    summary = finance.month_summary(db, user.id, month)
+    top = summary["categories"][0] if summary["categories"] else None
+    over = [b for b in context["budgets"] if b["state"] == "over"]
+    total_over = sum(max(Decimal("0"), Decimal(b["spent"]) - Decimal(b["limit"])) for b in context["budgets"])
+
+    findings: list[str] = []
+    if context["has_data"]:
+        if locale == "bm":
+            findings.append(f"Anda terima {finance.money(summary['income_minor'])} dan belanja "
+                            f"{finance.money(summary['expenses_minor'])}, tinggal {finance.money(summary['balance_minor'])}.")
+            if top:
+                findings.append(f"Kategori terbesar ialah {top['name']} ({top['amount']}).")
+            if over:
+                findings.append(f"{over[0]['category']} melebihi bajet sebanyak {finance.money(int(total_over * 100))}.")
+        else:
+            findings.append(f"You earned {finance.money(summary['income_minor'])} and spent "
+                            f"{finance.money(summary['expenses_minor'])}, leaving {finance.money(summary['balance_minor'])}.")
+            if top:
+                findings.append(f"{top['name']} took the biggest share at {top['amount']}.")
+            if over:
+                findings.append(f"{over[0]['category']} is over budget by {finance.money(int(total_over * 100))}.")
+    else:
+        findings.append("No transactions are recorded for this period yet." if locale == "en"
+                        else "Belum ada transaksi direkod untuk tempoh ini.")
+
+    action = None
+    if context["has_data"]:
+        if over:
+            action = (f"Consider a more realistic budget for {over[0]['category']} next month."
+                      if locale == "en" else
+                      f"Pertimbangkan bajet yang lebih realistik untuk {over[0]['category']} bulan depan.")
+        elif top:
+            action = (f"Keep {top['name']} steady and move the surplus into your savings goal."
+                      if locale == "en" else
+                      f"Kekalkan {top['name']} dan pindahkan lebihan ke sasaran simpanan anda.")
+
+    deterministic = " ".join(findings)
+    cfg = ai.provider_config()
+    if not cfg["configured"]:
+        return {"summary": deterministic, "findings": findings, "action": action,
+                "ai": {"status": "not_configured", "provider": cfg["provider"], "model": None},
+                "grounded": True, "period": context["period"], "period_label": context["period_label"]}
+
+    try:
+        ai.check_limits(db, user)
+    except ai.AIProviderError as exc:
+        raise HTTPException(429, detail={"code": exc.code, "message": str(exc)}) from exc
+
+    NL = "\n"
+    system = ai.SYSTEM_PROMPT + NL + NL + "VERIFIED_DATA:" + NL + __import__("json").dumps(context, ensure_ascii=False)
+    question = (
+        f"Write a short snapshot of my {context['period_label']} money in "
+        f"{'Bahasa Melayu' if locale == 'bm' else 'English'}. "
+        "At most 70 words. Give at most three findings, then one practical suggestion on a new line "
+        "starting with 'Action:'. Use only RM amounts from VERIFIED_DATA. No headings, no tables, no bullet lists."
+    )
+    started = time.perf_counter()
+    try:
+        result = ai._ask_provider(system, [], question, session_id=f"mt-brief-{user.id}")
+        ok, bad = ai.validate_reply(result.text, context)
+        if not ok:
+            result = ai._ask_provider(
+                system, [],
+                question + NL + NL + f"Do not use these amounts: {', '.join(bad)}. Only use VERIFIED_DATA figures.",
+                session_id=f"mt-brief-{user.id}")
+            ok, bad = ai.validate_reply(result.text, context)
+        latency = int((time.perf_counter() - started) * 1000)
+        if not ok:
+            ai.log_usage(db, user.id, "brief", cfg["provider"], "error", latency,
+                         error_code=("ungrounded:" + ",".join(bad))[:40])
+            return {"summary": deterministic, "findings": findings, "action": action,
+                    "ai": {"status": "fallback", "provider": cfg["provider"], "model": cfg["model"]},
+                    "grounded": True, "period": context["period"], "period_label": context["period_label"],
+                    "notice": "The AI reply was replaced by a backend-computed summary."}
+
+        ai.log_usage(db, user.id, "brief", cfg["provider"], "ok", latency,
+                     tokens_input=result.tokens_input, tokens_output=result.tokens_output)
+        text = result.text.strip()
+        suggested = None
+        for line in text.splitlines():
+            stripped = line.strip()
+            if stripped.lower().startswith("action:"):
+                suggested = stripped.split(":", 1)[1].strip()
+        body = NL.join(line for line in text.splitlines() if not line.strip().lower().startswith("action:")).strip()
+        return {"summary": body or deterministic,
+                "findings": findings,
+                "action": suggested or action,
+                "ai": {"status": "ok", "provider": cfg["provider"], "model": cfg["model"]},
+                "grounded": True, "period": context["period"], "period_label": context["period_label"]}
+    except ai.AIProviderError as exc:
+        latency = int((time.perf_counter() - started) * 1000)
+        ai.log_usage(db, user.id, "brief", cfg["provider"], "error", latency, exc.code)
+        return {"summary": deterministic, "findings": findings, "action": action,
+                "ai": {"status": "error", "error_code": exc.code, "provider": cfg["provider"], "model": cfg["model"]},
+                "grounded": True, "period": context["period"], "period_label": context["period_label"],
+                "notice": "The AI service did not respond. This summary is computed from your records."}
 
 
 @router.get("/conversations")

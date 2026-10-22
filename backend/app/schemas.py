@@ -287,7 +287,7 @@ class SimulationIn(BaseModel):
 
 # ---------------------------------------------------------------- AI
 class ChatIn(BaseModel):
-    message: str = Field(min_length=1, max_length=2000)
+    message: str = Field(min_length=1, max_length=1000)
     conversation_id: Optional[str] = None
     locale: Optional[Literal["en", "bm"]] = None
 

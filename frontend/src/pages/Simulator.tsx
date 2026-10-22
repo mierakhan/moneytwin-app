@@ -87,7 +87,7 @@ export default function Simulator() {
     <div className="space-y-5">
       <header>
         <p className="eyebrow">{t("navSimulator")}</p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight text-navy">{lang === "bm" ? "Apa jika…" : "What if…"}</h1>
+        <h1 className="display mt-1 text-[30px] leading-tight text-navy sm:text-[36px]">{lang === "bm" ? "Apa jika…" : "What if…"}</h1>
         <p className="mt-1 text-sm text-muted">
           {lang === "bm"
             ? "Angka dikira oleh pelayan. Rekod anda tidak diubah."

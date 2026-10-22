@@ -24,6 +24,7 @@ export default function Goals() {
 
   const [contributeTo, setContributeTo] = useState<Goal | null>(null);
   const [contribution, setContribution] = useState("");
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -81,6 +82,19 @@ export default function Goals() {
     }
   };
 
+  const saveDeadline = async (goalId: string) => {
+    const value = drafts[goalId];
+    if (!value) return;
+    try {
+      await api.patch(`/api/goals/${goalId}`, { deadline: value });
+      push(lang === "bm" ? "Tarikh akhir disimpan." : "Deadline saved.", "success");
+      setDrafts((prev) => ({ ...prev, [goalId]: "" }));
+      await load();
+    } catch (err) {
+      push(err instanceof ApiError ? err.message : t("somethingWrong"), "error");
+    }
+  };
+
   const remove = async (goal: Goal) => {
     try {
       await api.del(`/api/goals/${goal.id}`);
@@ -96,7 +110,7 @@ export default function Goals() {
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="eyebrow">{t("navGoals")}</p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-navy">{lang === "bm" ? "Sasaran simpanan" : "Savings goals"}</h1>
+          <h1 className="display mt-1 text-[30px] leading-tight text-navy sm:text-[36px]">{lang === "bm" ? "Sasaran simpanan" : "Savings goals"}</h1>
           <p className="mt-1 text-sm text-muted">
             {lang === "bm" ? "Rekod simpanan sahaja. Tiada wang benar bergerak." : "Bookkeeping only. No real money moves."}
           </p>
@@ -122,10 +136,13 @@ export default function Goals() {
       )}
 
       <div className="grid gap-4 md:grid-cols-2">
-        {goals.map((goal) => {
+        {goals.map((goal, index) => {
           const completed = goal.status === "completed";
           return (
-            <article key={goal.id} className="card card-pad">
+            <article key={goal.id} className="card card-pad overflow-hidden">
+              <div className={`-mx-5 -mt-5 mb-4 h-2 sm:-mx-6 sm:-mt-6 ${
+                ["card-grad-coral", "card-grad-violet", "card-grad-emerald", "card-grad-blue"][index % 4]
+              }`} />
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h2 className="text-base font-semibold text-navy">{goal.title}</h2>
@@ -152,7 +169,9 @@ export default function Goals() {
                 <div>
                   <dt className="text-xs text-muted">{t("monthlyNeeded")}</dt>
                   <dd className="mt-0.5 font-medium text-navy">
-                    {goal.monthly_needed ? myr(goal.monthly_needed) : (lang === "bm" ? "Tiada tempoh sah" : "No valid period")}
+                    {goal.monthly_needed
+                      ? myr(goal.monthly_needed)
+                      : (lang === "bm" ? "Tetapkan tarikh akhir" : "Set a deadline to see this")}
                   </dd>
                 </div>
                 <div>
@@ -164,6 +183,27 @@ export default function Goals() {
                   <dd className="mt-0.5 font-medium text-navy">{completed ? t("completed") : t("target")}</dd>
                 </div>
               </dl>
+
+              {!goal.deadline && (
+                <div className="mt-3 rounded-xl border border-line bg-canvas p-2.5">
+                  <p className="text-xs text-muted">
+                    {lang === "bm"
+                      ? "Belum ada tarikh akhir. Tambah satu untuk melihat jumlah simpanan bulanan."
+                      : "No deadline set. Add one to see how much to save each month."}
+                  </p>
+                  <div className="mt-2 flex gap-2">
+                    <label className="sr-only" htmlFor={`deadline-${goal.id}`}>{t("deadline")}</label>
+                    <input id={`deadline-${goal.id}`} type="date" className="input !py-1.5 !text-xs"
+                           value={drafts[goal.id] ?? ""}
+                           onChange={(event) => setDrafts((prev) => ({ ...prev, [goal.id]: event.target.value }))} />
+                    <button type="button" className="chip !py-1 text-xs"
+                            disabled={!drafts[goal.id]}
+                            onClick={() => void saveDeadline(goal.id)}>
+                      {t("save")}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {goal.deadline_note === "overdue" && (
                 <p className="mt-3 flex items-center gap-2 rounded-lg bg-red-50 p-2.5 text-xs text-red-700">

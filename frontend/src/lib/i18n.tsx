@@ -109,6 +109,14 @@ export const dict = {
   startFree: { en: "Start free", bm: "Mula percuma" },
   faq: { en: "Questions", bm: "Soalan" },
   status: { en: "Status", bm: "Status" },
+  navHistory: { en: "History", bm: "Sejarah" },
+  history: { en: "Monthly history", bm: "Sejarah bulanan" },
+  historyBody: { en: "Every month back to your first record, compared honestly.", bm: "Setiap bulan sejak rekod pertama anda, dibandingkan dengan jujur." },
+  comparePrev: { en: "vs previous month", bm: "berbanding bulan lepas" },
+  snapshot: { en: "Your monthly financial snapshot", bm: "Gambaran kewangan bulanan anda" },
+  detailedAnalysis: { en: "View detailed analysis", bm: "Lihat analisis terperinci" },
+  collapse: { en: "Collapse", bm: "Tutup" },
+  recommendations: { en: "Suggested next steps", bm: "Langkah seterusnya" },
 };
 
 export type DictKey = keyof typeof dict;

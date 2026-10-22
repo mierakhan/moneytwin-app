@@ -33,13 +33,16 @@ def summary(month: str | None = Query(default=None), user: User = Depends(get_cu
     except ValueError:
         raise HTTPException(400, detail="month must look like YYYY-MM")
     rows = finance.budget_rows(db, user.id, start)
+    over_total = sum(max(0, r["spent_minor"] - r["limit_minor"]) for r in rows)
     return {
         "month": f"{start.year:04d}-{start.month:02d}",
         "month_label": finance.month_label(start, user.locale),
         "total_limit": finance.money(sum(r["limit_minor"] for r in rows)),
         "total_spent": finance.money(sum(r["spent_minor"] for r in rows)),
+        "overspending_total": finance.money(over_total),
         "alerts": [r for r in rows if r["state"] in ("warning", "reached", "over")],
         "budgets": rows,
+        "unbudgeted": finance.unbudgeted_spending(db, user.id, start),
     }
 
 

@@ -56,6 +56,13 @@ export type Dashboard = {
   categories: CategorySlice[];
   transaction_count: number;
   budgets: BudgetRow[];
+  overspending_total: string;
+  overspending_total_minor: number;
+  over_budgets: Array<{
+    budget_id: string; category_id: string; category_name: string;
+    limit: string; spent: string; overspend: string; overspend_minor: number; percent_used: number | null;
+  }>;
+  unbudgeted: Array<{ category_id: string; category_name: string; spent: string; spent_minor: number }>;
   warnings: Array<{
     budget_id: string;
     category_name: string;

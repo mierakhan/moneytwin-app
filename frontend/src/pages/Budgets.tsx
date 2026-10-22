@@ -4,6 +4,8 @@ import { api, ApiError } from "../lib/api";
 import { monthKey, myr, pct } from "../lib/format";
 import { useI18n } from "../lib/i18n";
 import type { BudgetRow, Category } from "../lib/types";
+
+type Unbudgeted = { category_id: string; category_name: string; spent: string };
 import { useToast } from "../state/Toast";
 import MonthPicker from "../components/MonthPicker";
 import { Badge, EmptyState, ErrorState, Modal, PercentText, ProgressBar, SectionCard, Skeleton } from "../components/ui";
@@ -13,6 +15,8 @@ export default function Budgets() {
   const { push } = useToast();
   const [month, setMonth] = useState(monthKey());
   const [rows, setRows] = useState<BudgetRow[]>([]);
+  const [unbudgeted, setUnbudgeted] = useState<Unbudgeted[]>([]);
+  const [overspendTotal, setOverspendTotal] = useState("0.00");
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -34,8 +38,11 @@ export default function Budgets() {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get<{ budgets: BudgetRow[] }>(`/api/budgets?month=${month}`);
+      const res = await api.get<{ budgets: BudgetRow[]; unbudgeted: Unbudgeted[]; overspending_total: string }>(
+        `/api/budgets/summary?month=${month}`);
       setRows(res.budgets);
+      setUnbudgeted(res.unbudgeted ?? []);
+      setOverspendTotal(res.overspending_total ?? "0.00");
       res.budgets.forEach((row) => {
         const key = `${row.id}:${row.state}`;
         if ((row.state === "warning" || row.state === "over") && !alerted.current.has(key)) {
@@ -59,9 +66,9 @@ export default function Budgets() {
     void load();
   }, [load]);
 
-  const openAdd = () => {
+  const openAdd = (preset?: string) => {
     setEditing(null);
-    setCategoryId(categories[0]?.id ?? "");
+    setCategoryId(preset ?? categories[0]?.id ?? "");
     setLimit("");
     setFormError(null);
     setModalOpen(true);
@@ -118,20 +125,20 @@ export default function Budgets() {
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="eyebrow">{t("navBudgets")}</p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-navy">{lang === "bm" ? "Had bulanan" : "Monthly limits"}</h1>
+          <h1 className="display mt-1 text-[30px] leading-tight text-navy sm:text-[36px]">{lang === "bm" ? "Had bulanan" : "Monthly limits"}</h1>
           <p className="mt-1 text-sm text-muted">
             {lang === "bm" ? "Amaran pada 80% dan apabila had dicapai." : "Alerts at 80% and when the limit is reached."}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <MonthPicker value={month} onChange={setMonth} />
-          <button type="button" className="btn-primary" onClick={openAdd} disabled={available.length === 0}>
+          <button type="button" className="btn-primary" onClick={() => openAdd()} disabled={available.length === 0}>
             <Plus className="h-4 w-4" />{t("newBudget")}
           </button>
         </div>
       </header>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-4">
         <div className="card p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted">{lang === "bm" ? "Jumlah had" : "Total limits"}</p>
           <p className="mt-1 text-lg font-bold text-navy">{myr(totalLimit)}</p>
@@ -143,6 +150,10 @@ export default function Budgets() {
         <div className="card p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted">{t("remaining")}</p>
           <p className={`mt-1 text-lg font-bold ${totalLimit - totalSpent < 0 ? "text-red-600" : "text-jade"}`}>{myr(totalLimit - totalSpent)}</p>
+        </div>
+        <div className="card p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">{t("overspent")}</p>
+          <p className={`mt-1 text-lg font-bold ${overspendTotal !== "0.00" ? "text-[#c2563a]" : "text-navy"}`}>{myr(overspendTotal)}</p>
         </div>
       </div>
 
@@ -156,7 +167,7 @@ export default function Budgets() {
         <SectionCard>
           <EmptyState title={lang === "bm" ? "Belum ada bajet" : "No budgets yet"}
                       body={lang === "bm" ? "Tetapkan had untuk makanan, sewa atau kategori lain." : "Set a limit for food, rent or any other category."}
-                      action={<button type="button" className="btn-jade" onClick={openAdd}>{t("newBudget")}</button>} />
+                      action={<button type="button" className="btn-jade" onClick={() => openAdd()}>{t("newBudget")}</button>} />
         </SectionCard>
       )}
 
@@ -207,6 +218,32 @@ export default function Budgets() {
           );
         })}
       </div>
+
+      {unbudgeted.length > 0 && (
+        <section className="card card-pad">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
+            {lang === "bm" ? "Belanja tanpa bajet" : "Unbudgeted spending"}
+          </p>
+          <p className="mt-1 text-sm text-muted">
+            {lang === "bm"
+              ? "Kategori ini ada perbelanjaan tetapi tiada had untuk bulan ini."
+              : "These categories have spending but no limit this month."}
+          </p>
+          <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+            {unbudgeted.map((row) => (
+              <li key={row.category_id} className="flex items-center justify-between gap-3 rounded-2xl bg-canvas px-3.5 py-3">
+                <span className="text-sm text-slate-600">{row.category_name}</span>
+                <span className="flex items-center gap-3">
+                  <span className="text-sm font-semibold text-navy">{myr(row.spent)}</span>
+                  <button type="button" className="chip !py-1 text-xs" onClick={() => openAdd(row.category_id)}>
+                    {t("newBudget")}
+                  </button>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? `${t("edit")} ${editing.category_name}` : t("newBudget")}
              footer={

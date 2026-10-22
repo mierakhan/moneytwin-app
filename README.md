@@ -150,8 +150,9 @@ npm run build
 | GET/POST | `/api/goals` | savings goals |
 | POST | `/api/goals/{id}/contribute` | bookkeeping only |
 | POST | `/api/simulations/calculate` | deterministic what-if |
-| GET | `/api/dashboard?month=YYYY-MM` | summary, trend, warnings |
-| POST | `/api/ai/chat` `/api/ai/analyze` | assistant and insight |
+| GET | `/api/dashboard?month=YYYY-MM` | summary, trend, warnings, previous month |
+| GET | `/api/history?months=6` | month-by-month history with change figures |
+| POST | `/api/ai/chat` `/api/ai/analyze` `/api/ai/brief` | assistant, detailed analysis, short snapshot |
 | GET | `/api/ai/status` `/usage` `/conversations` | AI state and history |
 | GET | `/api/admin/metrics` `/users` | aggregates only |
 
@@ -165,6 +166,15 @@ npm run build
 - **Flowise 401 / 404** — wrong flow ID, or API keys enabled without `FLOWISE_API_KEY`.
 - **Port in use** — set `API_PORT` and Vite `--port`; avoid 3000 and 8766.
 - **Reset sessions** — delete rows from `sessions` or clear cookies.
+
+## Chat surfaces
+
+The assistant lives in two places that share one conversation:
+
+- the floating button on every authenticated page, which opens a compact panel
+- the full workspace at `/app/chat`
+
+Both read and write the same persisted conversation, so moving between pages keeps the thread.
 
 ## Privacy and scope
 

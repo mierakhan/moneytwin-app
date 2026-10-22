@@ -31,6 +31,96 @@ Do not give investment trading instructions or claim to be a licensed financial 
 If the data shows nothing for the period, say so plainly instead of guessing."""
 
 
+# ------------------------------------------------------------------ contracts
+# docs/PROMPT_CONTRACT.md: every AI feature returns JSON that code checks before use.
+CHAT_CONTRACT = {
+    "answer": str,
+    "topic": str,
+    "needs_review": bool,
+}
+ANALYZE_CONTRACT = {
+    "summary": str,
+    "highest_spending_category": str,
+    "total_expenses": (int, float),
+    "overspending_amount": (int, float),
+    "recommendation": str,
+    "needs_review": bool,
+}
+SIM_CONTRACT = {
+    "scenario_name": str,
+    "baseline_balance": (int, float),
+    "projected_balance": (int, float),
+    "difference": (int, float),
+    "explanation": str,
+    "recommendation": str,
+    "needs_review": bool,
+}
+
+CONTRACT_INSTRUCTION = (
+    "Reply with only a JSON object, no markdown fence, no commentary. "
+    "Amounts inside JSON number fields are plain numbers in MYR (no currency symbol). "
+    "Text fields may mention RM amounts only if they come from VERIFIED_DATA."
+)
+
+
+def contract_prompt(schema: dict[str, object]) -> str:
+    fields = ", ".join(f'"{name}"' for name in schema)
+    return f"{CONTRACT_INSTRUCTION} Required fields: {fields}."
+
+
+def extract_json(text: str) -> dict[str, Any] | None:
+    """Pull the first JSON object out of a reply, tolerating fences and prose."""
+    if not text:
+        return None
+    cleaned = text.strip()
+    if cleaned.startswith("```"):
+        cleaned = re.sub(r"^```[a-zA-Z]*\s*", "", cleaned)
+        cleaned = re.sub(r"```\s*$", "", cleaned).strip()
+    start = cleaned.find("{")
+    end = cleaned.rfind("}")
+    if start == -1 or end <= start:
+        return None
+    candidate = cleaned[start:end + 1]
+    try:
+        parsed = json.loads(candidate)
+    except json.JSONDecodeError:
+        return None
+    return parsed if isinstance(parsed, dict) else None
+
+
+def check_contract(payload: dict[str, Any] | None, schema: dict[str, object]) -> tuple[bool, list[str], dict[str, Any] | None]:
+    """Schema check: every field present, right type. Returns (ok, problems, cleaned)."""
+    if payload is None:
+        return False, ["no json object"], None
+    problems: list[str] = []
+    cleaned: dict[str, Any] = {}
+    for name, expected in schema.items():
+        if name not in payload:
+            problems.append(f"missing {name}")
+            continue
+        value = payload[name]
+        if expected is bool:
+            if not isinstance(value, bool):
+                problems.append(f"{name} must be boolean")
+                continue
+        elif expected is str:
+            if not isinstance(value, str) or not value.strip():
+                problems.append(f"{name} must be text")
+                continue
+        elif isinstance(value, bool) or not isinstance(value, (int, float)):
+            problems.append(f"{name} must be a number")
+            continue
+        cleaned[name] = value
+    extra = set(payload) - set(schema)
+    for name in extra:
+        if name not in ("reason",):
+            problems.append(f"unexpected field {name}")
+    return (len(problems) == 0), problems, (cleaned if not problems else None)
+
+
+def numbers_match(value: float, expected_minor: int, tolerance_minor: int = 1) -> bool:
+    return abs(int(round(float(value) * 100)) - int(expected_minor)) <= tolerance_minor
+
 class AINotConfigured(RuntimeError):
     pass
 

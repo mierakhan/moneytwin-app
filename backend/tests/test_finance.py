@@ -152,15 +152,27 @@ def test_goal01_required_monthly(user_client):
     assert goal["monthly_needed"] == "300.00"
 
 
-def test_goal02_past_deadline_is_safe(user_client):
+def test_goal02_past_deadline_is_rejected_on_create(user_client):
     c = user_client["client"]
     token = user_client["csrf"]
-    r = c.post("/api/goals", headers={"X-CSRF-Token": token}, json={
+    res = c.post("/api/goals", headers={"X-CSRF-Token": token}, json={
         "title": "Late goal", "target_amount": "1000.00", "saved_amount": "100.00",
         "deadline": "2020-01-01",
     })
-    assert r.status_code == 201, r.text
-    body = r.json()
+    assert res.status_code == 400
+    assert "future" in res.json()["detail"].lower()
+
+
+def test_goal_existing_past_deadline_still_computes_safely(user_client):
+    c = user_client["client"]
+    token = user_client["csrf"]
+    goal = c.post("/api/goals", headers={"X-CSRF-Token": token}, json={
+        "title": "Moved deadline", "target_amount": "1000.00", "saved_amount": "100.00",
+    }).json()
+    patched = c.patch(f"/api/goals/{goal['id']}", headers={"X-CSRF-Token": token},
+                      json={"deadline": "2020-01-01"})
+    assert patched.status_code == 200
+    body = patched.json()
     assert body["months_remaining"] == 0
     assert body["monthly_needed"] is None
     assert body["deadline_note"] == "overdue"

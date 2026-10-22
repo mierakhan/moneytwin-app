@@ -145,7 +145,7 @@ export default function Transactions() {
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="eyebrow">{t("navTransactions")}</p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-navy">Ledger</h1>
+          <h1 className="display mt-1 text-[30px] leading-tight text-navy sm:text-[36px]">Ledger</h1>
           <p className="mt-1 text-sm text-muted">
             {lang === "bm" ? "Setiap baris milik akaun anda sahaja." : "Every row belongs to your account only."}
           </p>

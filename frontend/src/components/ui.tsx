@@ -11,8 +11,8 @@ export function Logo({ size = 32, label = true }: { size?: number; label?: boole
         <circle cx="39" cy="32" r="11" fill="none" stroke="#4878E8" strokeWidth="4" />
       </svg>
       {label && (
-        <span className="text-[17px] font-bold tracking-tight text-navy">
-          Money<span className="text-jade">Twin</span>
+        <span className="display text-[21px] tracking-tight text-navy">
+          Money<span className="text-accent">Twin</span>
         </span>
       )}
     </span>

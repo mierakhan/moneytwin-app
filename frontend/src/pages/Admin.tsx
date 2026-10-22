@@ -64,7 +64,7 @@ export default function Admin() {
     <div className="space-y-5">
       <header>
         <p className="eyebrow">{t("navAdmin")}</p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight text-navy">{lang === "bm" ? "Kesihatan platform" : "Platform health"}</h1>
+        <h1 className="display mt-1 text-[30px] leading-tight text-navy sm:text-[36px]">{lang === "bm" ? "Kesihatan platform" : "Platform health"}</h1>
         <p className="mt-1 text-sm text-muted">
           {lang === "bm" ? "Metrik agregat sahaja. Tiada jumlah atau sembang peribadi." : "Aggregate metrics only. No private amounts or chat text."}
         </p>

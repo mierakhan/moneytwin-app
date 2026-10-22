@@ -11,6 +11,7 @@ import Budgets from "./pages/Budgets";
 import Goals from "./pages/Goals";
 import Simulator from "./pages/Simulator";
 import Insights from "./pages/Insights";
+import HistoryPage from "./pages/History";
 import Chat from "./pages/Chat";
 import SettingsPage from "./pages/Settings";
 import Admin from "./pages/Admin";
@@ -51,6 +52,7 @@ export default function App() {
         <Route path="goals" element={<Goals />} />
         <Route path="simulator" element={<Simulator />} />
         <Route path="insights" element={<Insights />} />
+        <Route path="history" element={<HistoryPage />} />
         <Route path="chat" element={<Chat />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route

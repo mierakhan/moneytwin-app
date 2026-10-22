@@ -29,6 +29,9 @@ def list_goals(user: User = Depends(get_current_user), db: OrmSession = Depends(
 
 @router.post("", status_code=201)
 def create_goal(payload: GoalIn, user: User = Depends(require_csrf), db: OrmSession = Depends(get_db)):
+    # AC5.4: a new goal needs a future target date.
+    if payload.deadline and payload.deadline < finance.kl_today():
+        raise HTTPException(400, detail="Choose a target date in the future")
     target = to_minor(payload.target_amount)
     saved = to_minor_nonneg(payload.saved_amount)
     if saved > target:
